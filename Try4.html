@@ -1,0 +1,699 @@
+<html>
+<head>
+    <title>Summer Olympics Home Ground Advantage</title>
+
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <style>
+	body {
+    margin: 0;
+    padding: 10px;
+    background-color: #ffffff;
+    font-family: sans-serif;
+    font-size: 12px;
+    color: #666666;
+    overflow: hidden;
+}
+
+a:link {
+    color: #ccccff;
+}
+a:visited {
+    color: #cccccc;
+}
+a:active {
+    color: #ffccff;
+}
+a.hover {
+    color: #ffcccc;
+}
+
+text.label {
+    fill: red;
+}
+
+line.axis {
+    stroke: #cccccc;
+}
+
+path {
+    stroke: #cccccc;
+	fill: none;
+}
+
+circle {
+    fill: red;
+}
+	</style>
+
+    <script type="text/javascript" src="http://d3js.org/d3.v2.min.js"></script>
+</head>
+<body>
+<h2>Summer Olympics: Home Ground Advantage</h2>
+
+<div class="legend">Mouse over a line or olympiad to highlight a host nation's history.</div>
+
+
+<span style="float: left">
+    <label title="Ranking based on gold, silver then bronze medal counts">
+        <input type="radio" name="yAxis" id="rank" onclick="setYAxis('rank');"/>
+        Rank
+    </label><br/>
+    <label title="Gold medals count">
+        <input type="radio" name="yAxis" id="gold" onclick="setYAxis('gold');"/>
+        Gold Medals
+    </label><br/>
+    <label title="Silver medals count">
+        <input type="radio" name="yAxis" id="silver" onclick="setYAxis('silver');"/>
+        Silver Medals
+    </label><br/>
+    <label title="Bronze medals count">
+        <input type="radio" name="yAxis" id="bronze" onclick="setYAxis('bronze');"/>
+        Bronze Medals
+    </label><br/>
+    <label title="Total medals count">
+        <input type="radio" name="yAxis" id="total" onclick="setYAxis('total');"/>
+        Total Medals
+    </label><br/>
+</span>
+
+
+<span id="chart"></span>
+
+<script>
+// Dimensions.
+const WIDTH = 1500;
+const HEIGHT = 675;
+
+// Insets.
+const INSETS = {"left": 50,
+    "right": 200,
+    "top": 10,
+    "bottom": 50};
+
+// Glyph radius.
+const GLYPH_RADIUS = 6;
+
+// Hash keys.
+const INDEX_KEY = 'index';
+const GOLD_KEY = "gold";
+const SILVER_KEY = "silver";
+const BRONZE_KEY = "bronze";
+const TOTAL_KEY = "total";
+const RANK_KEY = "rank";
+
+// Axes.
+const AXES = {};
+
+// Scales.
+const SCALES = {};
+
+// Paths.
+const PATHS = {};
+
+// Transition duration (ms).
+const DURATION = 1000;
+
+// Visualize when document has loaded.
+window.onload = function() {
+
+    // Read the hosts data file.
+    d3.csv("https://gist.githubusercontent.com/aniketbiswas2017/e10ae63915bdea6de3b9f14a63fca061/raw/4d53dff54b50f1aabf5d715c8b3fbabf74082e9a/hosts.csv", function(d1) {
+
+        var hosts = parseHosts(d1);
+
+        // Read the medals data file.
+        d3.csv("https://gist.githubusercontent.com/aniketbiswas2017/a16a86289d068f4e7c503f15a70db990/raw/161ebb45f2361c2a2ab75fab88bb0b8087864715/data.csv", function(d2) {
+
+            chart(parseResults(d2, hosts), hosts);
+        });
+    });
+};
+
+// Parse the host cities/countries data.
+//
+// data: array of data records.
+//
+function parseHosts(data) {
+
+    // Initialise hosts map.
+    var hosts = {};
+
+    // Process each data record..
+    data.forEach(function(record, index) {
+
+        var items = {};
+        items[INDEX_KEY] = index;
+        items['City'] = record['City'];
+        items['Country'] = record['Country'];
+        items['Olympiad'] = record['Olympiad'];
+        hosts[record['Year']] = items;
+    });
+
+    return hosts;
+}
+
+// Parse the data set.
+//
+// data: array of data records.
+// hosts: array of host country data records.
+//
+function parseResults(data, hosts) {
+
+    var results = [];
+
+    // Process each data record..
+    for (var row = 0;
+         row < data.length;
+         row++) {
+
+        var record = data[row];
+        var history = [];
+
+        // Process each year.
+        for (var year in hosts) {
+
+            var host = hosts[year];
+            var items = {};
+            items[INDEX_KEY] = host[INDEX_KEY];
+            items[GOLD_KEY] = parseInt(record['Gold ' + year]);
+            items[SILVER_KEY] = parseInt(record['Silver ' + year]);
+            items[BRONZE_KEY] = parseInt(record['Bronze ' + year]);
+            items[RANK_KEY] = parseInt(record['Rank ' + year]);
+            items[TOTAL_KEY] = items[GOLD_KEY] + items[SILVER_KEY] + items[BRONZE_KEY];
+
+            if (items[TOTAL_KEY] > 0) {
+                history.push(items);
+            }
+        }
+
+        // Append results.
+        results.push({
+            'results': history,
+            'country': record.Country
+        });
+    }
+
+    return results;
+}
+
+// Plot the chart.
+//
+// data: the data set.
+//
+function chart(data, hosts) {
+
+    // Set up the scales.
+    configureScales(data);
+
+    // Line chart paths..
+    calculatePaths();
+
+    // Check key to use.
+    document.getElementById(TOTAL_KEY).checked = true;
+
+    // Chart root.
+    var chart = d3.select("#chart")
+        .append("svg:svg")
+        .attr("width", WIDTH)
+        .attr("height", HEIGHT);
+
+
+    // X-axis.
+    labelXAxisOlympiads(chart, hosts, TOTAL_KEY);
+    labelXAxisCity(chart, hosts, TOTAL_KEY);
+    labelXAxisCountry(chart, hosts, TOTAL_KEY);
+    axleXAxis(chart, TOTAL_KEY);
+
+    // Y-axis.
+    appendYAxis(chart);
+
+    // Path for each line.
+    appendPaths(chart, data, TOTAL_KEY);
+
+    // Glyphs for results.
+    addGlyphs(chart, data, TOTAL_KEY);
+
+    // Labels.
+    appendCountryLabels(chart, data, TOTAL_KEY);
+}
+
+// Configure the scales.
+//
+// data: data set.
+//
+function configureScales(data) {
+
+    var results = data.map(function(d) {
+
+        return d.results;
+    });
+
+    var gold = results.map(function(d) {
+
+        return d3.max(d, function(e) {
+
+            return e[GOLD_KEY];
+        });
+    });
+
+    var silver = results.map(function(d) {
+
+        return d3.max(d, function(e) {
+
+            return e[SILVER_KEY];
+        });
+    });
+
+    var bronze = results.map(function(d) {
+
+        return d3.max(d, function(e) {
+
+            return e[BRONZE_KEY];
+        });
+    });
+
+    var total = results.map(function(d) {
+
+        return d3.max(d, function(e) {
+
+            return e[TOTAL_KEY];
+        });
+    });
+
+    var rank = results.map(function(d) {
+
+        return d3.max(d, function(e) {
+
+            return e[RANK_KEY];
+        });
+    });
+
+    var maxIndex = results.map(function(d) {
+
+        return d3.max(d, function(e) {
+
+            return e[INDEX_KEY];
+        });
+    });
+
+    // X-axis scale.
+    SCALES.x = d3.scale.linear()
+        .domain([0, d3.max(maxIndex)])
+        .range([INSETS.left, WIDTH - INSETS.right]);
+
+    // Y-axis scale: gold medals..
+    SCALES[GOLD_KEY] = d3.scale.linear()
+        .domain([d3.max(gold), 0])
+        .range([INSETS.top, HEIGHT - INSETS.bottom])
+        .nice();
+
+    // Y-axis scale: silver medals..
+    SCALES[SILVER_KEY] = d3.scale.linear()
+        .domain([d3.max(silver), 0])
+        .range([INSETS.top, HEIGHT - INSETS.bottom])
+        .nice();
+
+    // Y-axis scale: bronze medals..
+    SCALES[BRONZE_KEY] = d3.scale.linear()
+        .domain([d3.max(bronze), 0])
+        .range([INSETS.top, HEIGHT - INSETS.bottom])
+        .nice();
+
+    // Y-axis scale: total medals..
+    SCALES[TOTAL_KEY] = d3.scale.linear()
+        .domain([d3.max(total), 0])
+        .range([INSETS.top, HEIGHT - INSETS.bottom])
+        .nice();
+
+    // Y-axis scale: rank.
+    SCALES[RANK_KEY] = d3.scale.linear()
+        .domain([1, d3.max(rank)])
+        .range([INSETS.top, HEIGHT - INSETS.bottom])
+        .nice();
+
+    // Configure scales.
+    AXES[GOLD_KEY] = d3.svg.axis().scale(SCALES[GOLD_KEY]).orient("left");
+    AXES[SILVER_KEY] = d3.svg.axis().scale(SCALES[SILVER_KEY]).orient("left");
+    AXES[BRONZE_KEY] = d3.svg.axis().scale(SCALES[BRONZE_KEY]).orient("left");
+    AXES[TOTAL_KEY] = d3.svg.axis().scale(SCALES[TOTAL_KEY]).orient("left");
+    AXES[RANK_KEY] = d3.svg.axis().scale(SCALES[RANK_KEY]).orient("left");
+}
+
+// Calculate the paths for line charts.
+//
+function calculatePaths() {
+
+    PATHS[GOLD_KEY] = d3.svg.line()
+        .x(function(d) {
+
+            return SCALES.x(d[INDEX_KEY]);
+        })
+        .y(function(d) {
+
+            return SCALES[GOLD_KEY](d[GOLD_KEY]);
+        })
+        .interpolate("linear");
+
+    PATHS[SILVER_KEY] = d3.svg.line()
+        .x(function(d) {
+
+            return SCALES.x(d[INDEX_KEY]);
+        })
+        .y(function(d) {
+
+            return SCALES[SILVER_KEY](d[SILVER_KEY]);
+        })
+        .interpolate("linear");
+
+    PATHS[BRONZE_KEY] = d3.svg.line()
+        .x(function(d) {
+
+            return SCALES.x(d[INDEX_KEY]);
+        })
+        .y(function(d) {
+
+            return SCALES[BRONZE_KEY](d[BRONZE_KEY]);
+        })
+        .interpolate("linear");
+
+    PATHS[TOTAL_KEY] = d3.svg.line()
+        .x(function(d) {
+
+            return SCALES.x(d[INDEX_KEY]);
+        })
+        .y(function(d) {
+
+            return SCALES[TOTAL_KEY](d[TOTAL_KEY]);
+        })
+        .interpolate("linear");
+
+    PATHS[RANK_KEY] = d3.svg.line()
+        .x(function(d) {
+
+            return SCALES.x(d[INDEX_KEY]);
+        })
+        .y(function(d) {
+
+            return SCALES[RANK_KEY](d[RANK_KEY]);
+        })
+        .interpolate("linear");
+}
+
+// Highlight elements for a country.
+//
+// country: the country to highlight.
+//
+function highlightByCountry(country) {
+
+    var id = toId(country);
+
+    // Highlight x-axis
+    d3.selectAll("text.xaxis#" + id)
+        .style("fill", "red");
+
+    // Highlight path.
+    d3.selectAll("path#" + id)
+        .style("stroke", "red");
+
+    // Highlight label.
+    d3.selectAll("text.label#" + id)
+        .style("opacity", 1.0);
+
+    d3.selectAll("circle.results#" + id)
+        .style("opacity", 1.0);
+}
+
+// Unhighlight all elements.
+//
+function unhighlight() {
+
+    d3.selectAll("text.xaxis")
+        .style("fill", null);
+
+    d3.selectAll("path")
+        .style("stroke", "#cccccc");
+
+    d3.selectAll("text.label")
+        .style("opacity", 0.0);
+
+    d3.selectAll("circle")
+        .style("opacity", 0.0);
+}
+
+// Sets the y-axis using a transition.
+//
+// key: key to use on the y-axis.
+//
+function setYAxis(key) {
+
+    // Results paths.
+    d3.selectAll("path.results")
+        .transition(DURATION)
+        .attr("d", PATHS[key]);
+
+    // Y-axis country labels.
+    d3.selectAll("text.label.yaxis")
+        .transition(DURATION)
+        .attr("y", function (d) {
+
+            return SCALES[key](d3.last(d.results)[key]);
+
+        });
+
+    // Glyphs.
+    d3.selectAll("circle.results")
+        .transition(DURATION)
+        .attr("cy", function (d) {
+
+            return SCALES[key](d[key]);
+        });
+
+    // Y-axis.
+    d3.selectAll("g.yaxis")
+        .call(AXES[key]);
+}
+
+function toId(text) {
+
+    return text.replace(/\s+/g, "_");
+}
+
+function appendPaths(chart, data, key) {
+
+    chart.selectAll("path.results")
+        .data(data.map(function(d) {
+
+        return d.results;
+    }))
+        .enter()
+        .append("svg:path")
+        .attr("class", "results")
+        .attr("id", function(d, i) {
+
+            return toId(data[i].country);
+        })
+        .attr("d", PATHS[key])
+        .on("mouseover", function(d, i) {
+
+            highlightByCountry(data[i].country);
+        })
+        .on("mouseout", function() {
+
+            unhighlight();
+        });
+}
+function addGlyphs(chart, data, TOTAL_KEY) {
+
+    // Create flat array of results.
+    var results = [];
+    data.forEach(function(record) {
+
+        var country = record.country;
+
+        record.results.forEach(function(result) {
+
+            // Copy results.
+            var items = {'country': country};
+            for (var key in result) {
+                items[ key ] = result[ key ];
+            }
+            results.push(items);
+        });
+    });
+
+    // Add glyphs.
+    chart.selectAll("circle.results")
+        .data(results)
+        .enter()
+        .append("svg:circle")
+        .style("opacity", 0.0)
+        .attr("class", "results")
+        .attr("id", function(d) {
+
+            return toId(d.country);
+        })
+        .attr("cx", function(d) {
+
+            return SCALES.x(d[INDEX_KEY]);
+        })
+        .attr("cy", function(d)
+        {
+            return SCALES[TOTAL_KEY](d[TOTAL_KEY]);
+        })
+        .attr("r", GLYPH_RADIUS);
+}
+
+function appendCountryLabels(chart, data, key) {
+
+    chart.selectAll("text.label.yaxis")
+        .data(data)
+        .enter()
+        .append("svg:text")
+        .attr("class", "label yaxis")
+        .attr("id", function(d) {
+
+            return toId(d.country);
+        })
+        .attr("text-anchor", "start")
+        .style("opacity", 0.0)
+        .attr("dx", "1.0em")
+        .attr("dy", "0.3em")
+        .attr("x", SCALES.x.range()[1])
+        .attr("y", function (d) {
+
+            return SCALES[key](d3.last(d.results)[key]);
+        })
+        .text(function(d) {
+
+            return d.country;
+        });
+}
+
+// Label the x-axis with olypiad.
+//
+// chart: parent chart element.
+// hosts: host data.
+// key: y-axis scale key.
+//
+function labelXAxisOlympiads(chart, hosts, key) {
+
+    chart.selectAll("text.xaxis.olympiad")
+        .data(d3.values(hosts))
+        .enter()
+        .append("svg:text")
+        .attr("class", "xaxis olympiad")
+        .attr("id", function(d) {
+
+            return toId(d.Country);
+        })
+        .attr("x", function(d) {
+
+            return SCALES.x(d[INDEX_KEY]);
+        })
+        .attr("y", SCALES[key].range()[1])
+        .attr("dy", "1.0em")
+        .attr("text-anchor", "middle")
+        .text(function(d) {
+
+            return d.Olympiad;
+        })
+        .on("mouseover", function(d) {
+
+            highlightByCountry(d.Country);
+        })
+        .on("mouseout", function() {
+
+            unhighlight();
+        });
+}
+
+// Label the x-axis with host cities.
+//
+// chart: parent chart element.
+// hosts: host data.
+// key: y-axis scale key.
+//
+function labelXAxisCity(chart, hosts, key) {
+
+    chart.selectAll("text.label.city")
+        .data(d3.values(hosts))
+        .enter()
+        .append("svg:text")
+        .style("opacity", 0.0)
+        .attr("class", "label city")
+        .attr("id", function(d) {
+
+            return toId(d.Country);
+        })
+        .attr("x", function(d) {
+
+            return SCALES.x(d[INDEX_KEY]);
+        })
+        .attr("y", SCALES[key].range()[1])
+        .attr("dy", "2.0em")
+        .attr("text-anchor", "middle")
+        .text(function(d) {
+
+            return d.City;
+        });
+}
+
+// X-axis axle.
+//
+// chart: parent chart element.
+// hosts: host data.
+// key: y-axis scale key.
+//
+function axleXAxis(chart, key) {
+
+    chart.append('svg:line')
+        .attr("class", "axis")
+        .attr('x1', SCALES.x.range()[0])
+        .attr('y1', SCALES[key].range()[1])
+        .attr('x2', SCALES.x.range()[1])
+        .attr('y2', SCALES[key].range()[1]);
+}
+
+// Label the x-axis with host countries.
+//
+// chart: parent chart element.
+// hosts: host data.
+// key: y-axis scale key.
+//
+function labelXAxisCountry(chart, hosts, key) {
+
+    chart.selectAll("text.label.country")
+        .data(d3.values(hosts))
+        .enter()
+        .append("svg:text")
+        .style("opacity", 0.0)
+        .attr("class", "label country")
+        .attr("id", function(d) {
+
+            return toId(d.Country);
+        })
+        .attr("x", function(d) {
+
+            return SCALES.x(d[INDEX_KEY]);
+        })
+        .attr("y", SCALES[key].range()[1])
+        .attr("dy", "3.0em")
+        .attr("text-anchor", "middle")
+        .text(function(d) {
+
+            return d.Country;
+        });
+}
+
+function appendYAxis(chart) {
+
+    chart.append("g")
+        .attr("class", "yaxis")
+        .attr("width", INSETS.left)
+        .attr("height", SCALES[TOTAL_KEY].range()[1] - SCALES[TOTAL_KEY].range()[0])
+        .attr("transform", "translate(" + SCALES.x.range()[0] + ", 0)")
+        .call(AXES[TOTAL_KEY]);
+}
+</script>
+</body>
+</html>

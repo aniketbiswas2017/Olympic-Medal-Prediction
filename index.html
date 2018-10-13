@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>Olympics</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Custom fonts for this template -->
+    <link href="vendor/font-awesome/css/font-awesome.min.css" rel="stylesheet" type="text/css">
+    <link href="https://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic" rel="stylesheet" type="text/css">
+    <link href='https://fonts.googleapis.com/css?family=Cabin:700' rel='stylesheet' type='text/css'>
+
+    <!-- Custom styles for this template -->
+    <link href="css/grayscale.min.css" rel="stylesheet">
+
+  </head>
+
+  <body id="page-top">
+
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-light fixed-top" id="mainNav">
+      <div class="container">
+        <a class="navbar-brand js-scroll-trigger" href="#page-top">VIS-A-LYTICS</a>
+        <button class="navbar-toggler navbar-toggler-right" type="button" data-toggle="collapse" data-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
+          Menu
+          <i class="fa fa-bars"></i>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarResponsive">
+          <ul class="navbar-nav ml-auto">
+            <li class="nav-item">
+              <a class="nav-link js-scroll-trigger" href="#about">Countries</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link js-scroll-trigger" href="#download">Host</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link js-scroll-trigger" href="#contact">Gender</a>
+            </li>
+			<li class="nav-item">
+              <a class="nav-link js-scroll-trigger" href="#downloa">Medals</a>
+            </li>
+			<li class="nav-item">
+              <a class="nav-link js-scroll-trigger" href="#downl">Dataset</a>
+            </li>
+			<li class="nav-item">
+              <a class="nav-link js-scroll-trigger" href="#downlo">Future</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Intro Header -->
+    <header class="masthead">
+      <div class="intro-body">
+        <div class="container">
+          <div class="row">
+            <div class="col-lg-8 mx-auto">
+              <h1 class="brand-heading">Olympics</h1>
+              <p class="intro-text">A BRIEF OVERVIEW AND ITS FUTURE
+                <br>Visual Analytics Project</p>
+              <a href="#about" class="btn btn-circle js-scroll-trigger">
+                <i class="fa fa-angle-double-down animated"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- About Section -->
+    <section id="about" class="content-section text-center">
+      <div class="container">
+        <div class="row">
+          <div class="col-lg-8 mx-auto">
+            <h2><a href="#first">More than 200 countries participate in the Olympics every 4th year</a></h2>
+			
+			<h3><a name ="first" id = "first"></h3>
+			<style>
+h3 {
+  position: absolute;
+  top: 500px;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 25px;
+  color: #ffffff;
+  text-align: center;
+  width: 960px;
+}
+</style>
+
+<script src="https://d3js.org/d3.v3.min.js"></script>
+<script src="https://d3js.org/queue.v1.min.js"></script>
+<script src="https://d3js.org/topojson.v1.min.js"></script>
+<script>
+
+var width = 530,
+    height = 530;
+
+var projection = d3.geo.orthographic()
+    .translate([width / 2, height / 2])
+    .scale(width / 2 - 20)
+    .clipAngle(90)
+    .precision(0.6);
+
+var canvas = d3.select("body").append("canvas")
+    .attr("width", width)
+    .attr("height", height);
+
+var c = canvas.node().getContext("2d");
+
+var path = d3.geo.path()
+    .projection(projection)
+    .context(c);
+
+var title = d3.select("h3");
+
+queue()
+    .defer(d3.json, "https://gist.githubusercontent.com/aniketbiswas2017/6c48dda8832651768cf262426fee3f64/raw/8d2be82193173e0acf5d210871ac0a186d4123aa/world-1102m.json")
+    .defer(d3.tsv, "https://gist.githubusercontent.com/aniketbiswas2017/e6adfc3eb8c0189cd28cc625926ad94d/raw/1c029116943d7c954941b1ccbd2564e730d36826/world-country-names.tsv")
+    .await(ready);
+
+function ready(error, world, names) {
+  if (error) throw error;
+
+  var globe = {type: "Sphere"},
+      land = topojson.feature(world, world.objects.land),
+      countries = topojson.feature(world, world.objects.countries).features,
+      borders = topojson.mesh(world, world.objects.countries, function(a, b) { return a !== b; }),
+      i = -1,
+      n = countries.length;
+
+  countries = countries.filter(function(d) {
+    return names.some(function(n) {
+      if (d.id == n.id) return d.name = n.name;
+    });
+  }).sort(function(a, b) {
+    return a.name.localeCompare(b.name);
+  });
+
+  (function transition() {
+    d3.transition()
+        .duration(750)
+        .each("start", function() {
+          title.text(countries[i = (i + 1) % n].name);
+        })
+        .tween("rotate", function() {
+          var p = d3.geo.centroid(countries[i]),
+              r = d3.interpolate(projection.rotate(), [-p[0], -p[1]]);
+          return function(t) {
+            projection.rotate(r(t));
+            c.clearRect(0, 0, width, height);
+            c.fillStyle = "#ccc", c.beginPath(), path(land), c.fill();
+            c.fillStyle = "#f00", c.beginPath(), path(countries[i]), c.fill();
+            c.strokeStyle = "#fff", c.lineWidth = .5, c.beginPath(), path(borders), c.stroke();
+            c.strokeStyle = "#000", c.lineWidth = 2, c.beginPath(), path(globe), c.stroke();
+          };
+        })
+      .transition()
+        .each("end", transition);
+  })();
+}
+
+d3.select(self.frameElement).style("height", height + "px");
+</script>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Download Section -->
+    <section id="download" class="download-section content-section text-center">
+      <div class="container">
+        <div class="col-lg-8 mx-auto">
+          <h2>Performace of Host Countries</h2>
+          <p>See how host nations performed over time and tide</p>
+          <a href="Try4.html" class="btn btn-default btn-lg">View performance</a>
+        </div>
+      </div>
+    </section>
+
+	<!-- Download Section -->
+    <section id="contact" class="download-section content-section text-center">
+      <div class="container">
+        <div class="col-lg-8 mx-auto">
+          <h2>Gender performances in the Olympics</h2>
+          <p>Women bettered their performance and participation rate as time moved on</p>
+          <a href="Try9.html" class="btn btn-default btn-lg">See Growth rate</a>
+        </div>
+      </div>
+    </section>
+	
+    <!-- Contact Section -->
+    <section id="downloa" class="content-section text-center">
+      <div class="container">
+        <div class="row">
+          <div class="col-lg-8 mx-auto">
+            <h2>The Medals Table speak the final word</h2>
+            <p>See how some countries held on to their positions in their respective
+              <a href="DNA.html">fields</a>
+              and how some countries made winning their hobby</p>
+            <ul class="list-inline banner-social-buttons">
+              <li class="list-inline-item">
+                <a href="Gold2.html" class="btn btn-default btn-lg">
+                  <span class="network-name">Total Medals</span>
+                </a>
+              </li>
+              <li class="list-inline-item">
+                <a href="Gold.html" class="btn btn-default btn-lg">
+                  <span class="network-name">Gold Medals</span>
+                </a>
+              </li>
+              <li class="list-inline-item">
+                <a href="Try7.html" class="btn btn-default btn-lg">
+                  <span class="network-name">Medal Count</span>
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+	
+	<!-- Download Section -->
+    <section id="downl" class="download-section content-section text-center">
+      <div class="container">
+        <div class="col-lg-8 mx-auto">
+          <h2>DATASET</h2>
+		  <p>We processed data from different datasets to arrive at our final list of selected attributes</p>
+          <ul class="list-inline banner-social-buttons">
+              <li class="list-inline-item">
+                <a href="https://data.worldbank.org/indicator/NY.GDP.PCAP.CD" class="btn btn-default btn-lg">
+                  <span class="network-name">World Bank</span>
+                </a>
+              </li>
+              <li class="list-inline-item">
+                <a href="https://www.kaggle.com/jeffksw/olympics-history-medals/data" class="btn btn-default btn-lg">
+                  <span class="network-name">Kaggle</span>
+                </a>
+              </li>
+              <li class="list-inline-item">
+                <a href="https://data.oecd.org/gdp/gross-domestic-product-gdp.htm#indicator-chart" class="btn btn-default btn-lg">
+                  <span class="network-name">OECD Data</span>
+                </a>
+              </li>
+            </ul>
+        </div>
+      </div>
+    </section>
+	
+	<!-- Download Section -->
+    <section id="downlo" class="content-section text-center">
+      <div class="container">
+        <div class="row">
+          <div class="col-lg-8 mx-auto">
+		  <ul class="list-inline banner-social-buttons">
+              
+                <a href="MLWorld.html" class="btn btn-default btn-lg">
+                  <span class="network-name">See how different attributes affect the count of total medals for the next Olympics</span>
+                </a>
+              
+			</ul>
+            <style type="text/css">
+		html, body { margin: 0, padding: 0, overflow: hidden}
+	</style>
+<script src="https://code.jquery.com/jquery-3.1.1.min.js" integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8=" crossorigin="anonymous"></script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r83/three.min.js"></script>
+<script type="text/javascript" src="script.js"></script>
+<script type="text/javascript">
+	
+	var scene = new THREE.Scene();
+	
+		var camera = new THREE.PerspectiveCamera( 30, window.innerWidth / window.innerHeight, 0.1, 1000 );
+	
+		var renderer = new THREE.WebGLRenderer();
+	
+			renderer.setSize( window.innerWidth, window.innerHeight );
+			
+				$('body').append( renderer.domElement );
+		THREE.ImageUtils.crossOrigin = 'anonymous';
+		var mapOverlay = THREE.ImageUtils.loadTexture('http://i.imgur.com/09sqWAC.jpg');
+		var material1 = new THREE.MeshBasicMaterial( { map: mapOverlay, needsUpdate: true } );
+		//Create blue ring
+		var geometry = new THREE.RingGeometry( 2, 2.4, 64 );
+		var materialBlue = new THREE.MeshBasicMaterial( { color: 0x0099ff, side: THREE.DoubleSide } );
+		var blue = new THREE.Mesh( geometry, materialBlue );
+		//Create yellow ring
+		var materialYellow = new THREE.MeshBasicMaterial( { color: 0xFFFF00, side: THREE.DoubleSide } );
+		var yellow = new THREE.Mesh( geometry, materialYellow );
+		//Create gray ring
+		var materialGray = new THREE.MeshBasicMaterial( { color: 0x999999, side: THREE.DoubleSide } );
+		var gray = new THREE.Mesh( geometry, materialGray );
+		//Create green ring
+		var materialGreen = new THREE.MeshBasicMaterial( { color: 0x009933, side: THREE.DoubleSide } );
+		var green = new THREE.Mesh( geometry, materialGreen );
+		//Create red ring
+		var materialRed = new THREE.MeshBasicMaterial( { color: 0xFF3300, side: THREE.DoubleSide } );
+		var red = new THREE.Mesh( geometry, materialRed );
+		
+		//scene.add will add the ring and .position.x/y positions the ring on the page	
+		scene.add(blue);
+		scene.add(yellow);
+		scene.add(gray);
+		scene.add(green);
+		scene.add(red);
+		
+		//positioning the rings on the x and y axis
+		yellow.position.x = 3;
+		yellow.position.y = -1.75;
+		gray.position.x = 6;
+		green.position.x = 9;
+		green.position.y = -1.75;
+		red.position.x = 12;
+		//where the camera is relative to the ring
+		camera.position.z = 35;
+		camera.position.y = -2;
+		camera.position.x = 6;
+		//function to make the rings rotate
+		function render() {
+			requestAnimationFrame(render);
+			renderer.render(scene, camera);
+			blue.rotation.y += 0.02;
+			yellow.rotation.y += 0.02;
+			gray.rotation.y += 0.02;
+			green.rotation.y += 0.02;
+			red.rotation.y += 0.02;
+		}
+		render();
+</script>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+      <div class="container text-center">
+        <p>Copyright &copy; VIS-A-LYTICS</p>
+      </div>
+    </footer>
+
+    <!-- Bootstrap core JavaScript -->
+    <script src="vendor/jquery/jquery.min.js"></script>
+    <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Plugin JavaScript -->
+    <script src="vendor/jquery-easing/jquery.easing.min.js"></script>
+
+    <!-- Google Maps API Key - Use your own API key to enable the map feature. More information on the Google Maps API can be found at https://developers.google.com/maps/ -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCRngKslUGJTlibkQ3FkfTxj3Xss1UlZDA&sensor=false"></script>
+
+    <!-- Custom scripts for this template -->
+    <script src="js/grayscale.min.js"></script>
+
+  </body>
+
+</html>

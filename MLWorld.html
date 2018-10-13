@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<body bgcolor="#000000">
+<head>
+<meta charset="utf-8">
+<title>Earth globe</title>
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="http://d3js.org/topojson.v1.min.js"></script>
+<script src="http://d3js.org/queue.v1.min.js"></script>
+</head>
+<style type="text/css">
+
+.water {
+  fill: #000000;
+}
+
+.land {
+  fill: #D6DBDF;
+  stroke: #ABB2B9  ;
+  stroke-width: 0.5px;
+}
+
+.land:hover {
+  fill:#76D7C4;
+  stroke-width: 1px;
+}
+
+.focused {
+  fill: #FF0000;
+  stroke: #148F77
+  stroke-width:3px;
+}
+
+#countryListSelect {
+  margin-left:25em;
+  position: absolute;
+  top: 20px;
+  left: 580px;
+  border: solid #ccc 1px;
+  padding: 3px;
+  box-shadow: inset 1px 1px 2px #ddd8dc;
+}
+
+
+#populationTooltip{	
+  margin-left:25em;
+  position: absolute;
+  display: none;
+  top: 50px;
+  left: 580px;
+  border: solid #ccc 1px;
+  padding: 3px;
+  box-shadow: inset 1px 1px 2px #ddd8dc;
+}
+#HDITooltip{	
+  margin-left:25em;
+  position: absolute;
+  display: none;
+  content: "Select HDI";
+  top: 80px;
+  left: 580px;
+  border: solid #ccc 1px;
+  padding: 3px;
+  box-shadow: inset 1px 1px 2px #ddd8dc;
+}
+#InternetTooltip{	
+  margin-left:25em;
+  position: absolute;
+  display: none;
+  top: 110px;
+  left: 580px;
+  border: solid #ccc 1px;
+  padding: 3px;
+  box-shadow: inset 1px 1px 2px #ddd8dc;
+}
+#GDPTooltip{	
+  margin-left:25em;
+  position: absolute;
+  display: none;
+  top: 140px;
+  left: 580px;
+  border: solid #ccc 1px;
+  padding: 3px;
+  box-shadow: inset 1px 1px 2px #ddd8dc;
+}
+#AtheleteTooltip{	
+  margin-left:25em;
+  position: absolute;
+  top: 170px;
+  display: none;
+  left: 580px;
+  border: solid #ccc 1px;
+  padding: 3px;
+  box-shadow: inset 1px 1px 2px #ddd8dc;
+}
+
+#Evaluate{	
+  margin-left:25em;
+  position: absolute;
+  top: 200px;
+  display: none;
+  left: 580px;
+}
+h2{
+	position:absolute;
+	top:350px;
+	left: 680px;
+	color: #ffffff
+}
+h3{
+	color: #ffffff
+	}
+</style>
+<body>
+<h2><a name= "medal" id = "medal"></h2>
+<div>
+<select id="countryListSelect">
+</select>
+<label title = "Select Population">
+<select id="populationTooltip">
+	<option value=500000>0-1000000</option>
+  	<option value=1500000>1000000-2000000</option>
+  	<option value=3500000>2000000-5000000</option>
+  	<option value=6750000>5000000-7500000</option>
+	<option value=8750000>7500000-10000000</option>
+	<option value=11500000>10000000-12500000</option>
+	<option value=13700000>12500000-15000000</option>
+	<option value=17500000>15000000-20000000</option>
+</select>
+</label>
+<label title = "Select HDI">
+<select id="HDITooltip">
+	<option value=0.5>0.0-0.10</option>
+  	<option value=1.5>0.1-0.2</option>
+  	<option value=2.5>0.2-0.30</option>
+  	<option value=3.5>0.3-0.40</option>
+	<option value=4.5>0.4-0.50</option>
+	<option value=5.5>0.5-0.60</option>
+	<option value=6.5>0.6-0.70</option>
+	<option value=7.5>0.7-0.80</option>
+	<option value=8.5>0.8-0.90</option>
+	<option value=9.5>0.9-1.0</option>
+</select>
+</label>
+<label title = "Select Internet Population">
+<select id="InternetTooltip">
+	<option value=12.5>0-25</option>
+  	<option value=37.5>25-50</option>
+  	<option value=62.5>50-75</option>
+  	<option value=87.5>75-100</option>
+	
+</select>
+</label>
+<label title = "Select GDP">
+<select id="GDPTooltip">
+	<option value=50>0-100</option>
+  	<option value=300>100-500</option>
+  	<option value=750>500-1000</option>
+  	<option value=1500>1000-2000</option>
+	<option value=2500>2000-3000</option>
+	<option value=3500>3000-4000</option>
+	<option value=4500>4000-5000</option>
+	<option value=5500>5000-6000</option>
+	<option value=6500>6000-7000</option>
+</select>
+</label>
+<label title = "Select Number of Athletes">
+<select id="AtheleteTooltip">
+	<option value=25>0-50</option>
+  	<option value=75>50-100</option>
+  	<option value=150>100-200</option>
+  	<option value=150>200-300</option>
+	<option value=250>300-400</option>
+	<option value=350>400-500</option>
+	<option value=450>500-600</option>
+	<option value=550>600-700</option>
+
+</select>
+<h3>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Select the country from the drop down list to analyze attributes & predict the country's future medal count: </h3>
+<button id="Evaluate" type="Submit">Evaluate</button>
+</div>
+<br>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+  <script>
+  var width = 800,
+  height = 500,
+  sens = 0.25,
+  focused;
+
+  //Setting projection
+
+  var projection = d3.geo.orthographic()
+  .scale(245)
+  .rotate([0, 0])
+  .translate([width / 2, height / 2])
+  .clipAngle(90);
+
+  var path = d3.geo.path()
+  .projection(projection);
+
+  //SVG container
+
+  var svg = d3.select("body").append("svg")
+  .attr("width", width)
+  .attr("height", height);
+
+  //Adding water
+
+  svg.append("path")
+  .datum({type: "Sphere"})
+  .attr("class", "water")
+  .attr("d", path);
+
+  countryList = d3.select("#countryListSelect");
+  var evaluate = d3.select("#Evaluate");
+  
+  queue()
+  .defer(d3.json," https://gist.githubusercontent.com/aniketbiswas2017/6c48dda8832651768cf262426fee3f64/raw/8d2be82193173e0acf5d210871ac0a186d4123aa/world-1102m.json")
+  .defer(d3.tsv, "https://gist.githubusercontent.com/aniketbiswas2017/e6adfc3eb8c0189cd28cc625926ad94d/raw/1c029116943d7c954941b1ccbd2564e730d36826/world-country-names.tsv")
+  .await(ready);
+
+  //Main function
+
+  function ready(error, world, countryData) {
+	var medalcount = d3.select("h2");
+	var countryname = d3.select("h4");
+    var countryById = {},
+    countries = topojson.feature(world, world.objects.countries).features;
+
+    //Adding countries to select
+
+    countryData.forEach(function(d) {
+      countryById[d.id] = d.name;
+      option = countryList.append("option");
+      option.text(d.name);
+      option.property("value", d.id);
+    });
+
+    //Drawing countries on the globe
+
+    var world = svg.selectAll("path.land")
+    .data(countries)
+    .enter().append("path")
+    .attr("class", "land")
+    .attr("d", path)
+
+    //Drag event
+
+    .call(d3.behavior.drag()
+      .origin(function() { var r = projection.rotate(); return {x: r[0] / sens, y: -r[1] / sens}; })
+      .on("drag", function() {
+        var rotate = projection.rotate();
+        projection.rotate([d3.event.x * sens, -d3.event.y * sens, rotate[2]]);
+        svg.selectAll("path.land").attr("d", path);
+        svg.selectAll(".focused").classed("focused", focused = false);
+      }))
+
+    //Mouse event
+
+    .on("mouseover", function(d) {
+      countryTooltip.text(countryById[d.id])
+      .style("left", (d3.event.pageX + 7) + "px")
+      .style("top", (d3.event.pageY - 15) + "px")
+      .style("display", "block")
+      .style("opacity", 1);
+    })
+    .on("mouseout", function(d) {
+      countryTooltip.style("opacity", 0)
+      .style("display", "none");
+    })
+    .on("mousemove", function(d) {
+      countryTooltip.style("left", (d3.event.pageX + 7) + "px")
+      .style("top", (d3.event.pageY - 15) + "px");
+    });
+
+    //Country focus on option select
+
+    countryList.on("change", function() {
+      var rotate = projection.rotate(),
+      focusedCountry = country(countries, this),
+      p = d3.geo.centroid(focusedCountry);
+
+      svg.selectAll(".focused").classed("focused", focused = false);
+
+      
+	
+    //Globe rotating
+
+    (function transition() {
+      d3.transition()
+      .duration(1000)
+      .tween("rotate", function() {
+        var r = d3.interpolate(projection.rotate(), [-p[0], -p[1]]);
+        return function(t) {
+          projection.rotate(r(t));
+          svg.selectAll("path").attr("d", path)
+          .classed("focused", function(d, i) { return d.id == focusedCountry.id ? focused = d : false; });
+        };
+      })
+      })();
+	  
+	  populationTooltip.style.display = "block";
+	  HDITooltip.style.display = "block";
+	  InternetTooltip.style.display="block";
+	  GDPTooltip.style.display = "block";
+	  AtheleteTooltip.style.display = "block";
+	  Evaluate.style.display = "block";
+	  
+	  
+	  
+    });
+	
+	evaluate.on("click",function(){
+	var selected = document.getElementById("countryListSelect");
+	var country = selected.options[selected.selectedIndex].text;
+	var population = populationTooltip.value;
+	var HDI = HDITooltip.value;
+	var internet = InternetTooltip.value;
+	var GDP = GDPTooltip.value;
+	var athletes = AtheleteTooltip.value;
+	console.log(country);
+	console.log(population);
+	console.log(HDI);
+	console.log(internet);
+	console.log(GDP);
+	console.log(athletes);
+	
+	$.ajax({  
+		type: "POST",
+        url: "Linear_Regression_Algo_Testing.py",
+        data: { country:JSON.stringify(country),
+						HDI:JSON.stringify(HDI),
+						population:JSON.stringify(population),
+						internet:JSON.stringify(internet),
+						GDP:JSON.stringify(GDP),
+						athletes:JSON.stringify(athletes)},
+        async: true,
+		success: function( msg ){var status = msg['status'];
+		if (status =="yes") 
+			{var response = msg['response']
+			
+				console.log(response)
+				medalcount.text("Total Medal Count: " +response);
+			}else
+			{          
+				errorMessage ="test"
+				errorMessage += msg['except']
+				alert(errorMessage);
+				}      
+			},
+			error: function(msg)
+			{
+				alert(msg.responseText);
+			}  
+		});
+		
+	  });
+
+    function country(cnt, sel) { 
+      for(var i = 0, l = cnt.length; i < l; i++) {
+        if(cnt[i].id == sel.value) {return cnt[i];}
+      }
+    };
+
+    
+
+  };
+  </script>
+  
+</body>
+</html>

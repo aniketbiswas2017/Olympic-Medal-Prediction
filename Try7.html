@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+
+    <meta charset="utf-8">
+    <title>Olympic Medals</title>
+    <script src="http://d3js.org/d3.v3.min.js"></script>
+    <style type="text/css">
+
+ 	body {
+		margin: 0;		
+		font-family: Helvetica, Arial, sans-serif;
+		
+	}
+
+	section {
+		width: 75%;
+	    margin: auto;
+	    background-color: white;
+	    padding: 10px;
+	}
+
+	#title {
+		width: 90%;
+		margin-left: auto;
+		margin-right: auto;
+		margin-top: 25px;
+		margin-bottom: 25px;
+	}
+
+	#chart1 {
+		position: relative;
+		width: auto;
+		height: auto;
+		margin-left: auto;
+		margin-right: auto;
+		margin-top: 10px;		
+		padding: 5px;
+		background-color: white;		
+	}
+
+
+	h1 {
+		font-size: 28px;
+		margin: 0;		
+		color: "003333";
+
+	}
+
+	p {
+		font-size: 14px;
+		margin: 15px 0 10px 0;
+	}
+
+    .axis path, .axis line {
+        fill: none;
+        stroke: grey;
+        shape-rendering: crispEdges;
+        opacity: 1;
+    }
+    .axis text {
+        font-family: sans-serif;
+        font-size: 11px;
+    }
+
+    #tooltip {
+        position: absolute;
+        text-align: center;
+        width: 60px;
+        height: auto;
+        padding: 10px;
+        color: white;
+        background-color:  #333300;
+        -webkit-border-radius: 10px;
+        -moz-border-radius: 10px;
+        border-radius: 10px;
+        -webkit-box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4);
+        -moz-box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4);
+        box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4);
+        pointer-events: none;
+    }
+
+    #tooltip.hidden {
+        display: none;
+    }
+
+    #tooltip p {
+        margin: 0;
+        font-family: sans-serif;
+        font-size: 12px;
+        line-height: 18px;
+    }
+
+	</style>
+
+</head>
+
+<body>	
+
+
+
+	<section>
+
+	<div id="tooltip" class="hidden">
+	    <p><span id="value">100</span>
+	</div>
+
+	
+
+	<div id="chart1" align="Top" ></div>
+	<script type="text/javascript">	
+
+	var divW = document.getElementById("chart1");
+	var width = divW.clientWidth*0.70;
+	var height = 900;	
+	var padding = [ 50, 10, 20, 150 ];  //Top, right, bottom, left
+
+
+	// Get the Medal By Country data
+	d3.csv("https://gist.githubusercontent.com/aniketbiswas2017/e496a726a55abd6c0207f9e9d20b826f/raw/b2163767f64cb11e61d751895b884a16a8a0432c/Medal_Country.csv", function(data) {		
+
+	var header = ["Gold", "Silver", "Bronze"];
+	var stack = d3.layout.stack();
+	var country = data.map(function (d) {
+        return d.Ctry_Name;});
+
+	console.log(country);	
+
+	//Create a new, empty array to hold our restructured dataset
+	var data_y = [];	
+
+	// Restructure data into JSON format
+    var data_y = header.map(function(c) {
+        return data.map(function(d) {
+			return {
+				x: d.Ctry_Name, 
+				y: +d[c]};
+			});
+    	});		
+
+
+	stack(data_y)
+	console.log(data_y)
+
+ 	// Invert the x and y values, and y0 becomes x0
+	var data_x = data_y.map(function (group) {
+	    return group.map(function (d) {
+	        return {
+	            x: d.y,
+	            y: d.x,
+	            x0: d.y0
+	        };
+	    });
+	})
+
+	console.log(data_x);
+
+	var xMax = d3.max(data_x, function (group) {
+	        return d3.max(group, function (d) {
+	            return d.x + d.x0;
+	        });
+		});
+
+	console.log(xMax);
+
+	var xScale = d3.scale.linear()
+	    .domain([0, xMax])
+		.range([ 0, width - padding[1] - padding[3] ]);
+	
+	var yScale = d3.scale.ordinal()
+		.domain(country)        
+		.rangeRoundBands([ padding[0], height - padding[2] ], 0.2);
+
+	var xAxis = d3.svg.axis()
+		.scale(xScale)
+		.orient("top");
+
+	var yAxis = d3.svg.axis()
+		.scale(yScale)
+		.orient("left");
+
+	var colours = d3.scale.ordinal()
+	    .domain(header)
+	    .range(["#FFD700", "#C0C0C0", "#CD7F32"]);
+	//var colours = d3.scale.category10();
+
+	//Now SVG goes into #chart instead of body
+	var svg = d3.select("#chart1")
+		.append("svg")
+		.attr("width", width)
+		.attr("height", height);
+
+	var groups = svg.selectAll('g')
+        .data(data_x)
+        .enter()
+        .append('g')
+        .style('fill', function (d, i) {return colours(i);});
+
+	/*var toolLabel = d3.select("#chart1")
+		.append("div")   
+		.attr("class", "tooltip")               
+		//.style("opacity", 0)
+		.html(" ");	*/
+
+	var rects = groups.selectAll('rect')
+        .data(function (d) {return d;})
+        .enter()
+        .append('rect')
+        .attr('x', function (d) {return padding[3] + xScale(d.x0);})
+        .attr('y', function (d, i) {return yScale(d.y);})
+        .attr('height', function (d) {return yScale.rangeBand();})
+        .attr('width', 0)
+        .on('mouseover', function (d) {
+	        var xPos = parseFloat(d3.select(this).attr('x')) + width/3;
+	        var yPos = parseFloat(d3.select(this).attr('y')) + padding[0]*4.5 + yScale.rangeBand();
+	        d3.select('#tooltip')
+	            .style('left', xPos + 'px')
+	            .style('top', yPos + 'px')
+	            .select('#value')
+	            .html("Medals:" + d.x);
+        	d3.select('#tooltip').classed('hidden', false);})
+        .on('mouseout', function () {
+        	d3.select('#tooltip').classed('hidden', true);}) ;        
+      		  
+	rects.transition()
+		.delay(function(d, i) {return i * 50;})
+		.duration(1000)
+		.attr('width', function (d) {return xScale(d.x) ;});
+ 		
+	svg.append("g")
+		.attr("class", "axis")
+		.attr("transform", "translate(" + padding[3] + "," + padding[0] + ")")
+		//.attr("transform", "translate(" + 1 + "," + (padding[0]) + ")")
+		.call(xAxis);
+
+	svg.append("g")
+		.attr("class", "axis")
+		.attr("transform", "translate(" + padding[3] + ",0)")
+		//.attr("transform", "translate(" + 10 + ",0)")
+		.call(yAxis);
+
+	svg.append("g")
+		.append("text")
+	    .attr("x", width-padding[1]) // spacing
+		.attr("y", (padding[0]-30))		
+	    .style("text-anchor", "end")
+	    .style("font-size", "12px")
+	    .text("Medal Count of Top 50 Countries");
+
+	});
+
+
+	</script>
+	</section>
+
+</body>
+</html>

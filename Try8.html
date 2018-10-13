@@ -1,0 +1,234 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+
+    <meta charset="utf-8">
+    <title>Olympic Medals</title>
+    <script src="http://d3js.org/d3.v3.min.js"></script>
+    <style type="text/css">
+
+ 	body {
+		margin: 0;		
+		font-family: Helvetica, Arial, sans-serif;
+		
+	}
+
+
+	#title {
+		width: 90%;
+		margin-left: auto;
+		margin-right: auto;
+		margin-top: 25px;
+		margin-bottom: 25px;
+	}
+
+	#chart2 {
+		width: auto;
+		height: auto;
+		margin-left: auto;
+		margin-right: auto;
+		margin-top: 10px;		
+		padding: 5px;
+		background-color: white;		
+	}	
+
+	h1 {
+		font-size: 28px;
+		margin: 0;		
+		color: "003333";
+
+	}
+
+	p {
+		font-size: 14px;
+		margin: 15px 0 10px 0;
+	}
+
+    .axis path, .axis line {
+        fill: none;
+        stroke: grey;
+        shape-rendering: crispEdges;
+        opacity: 1;
+    }
+    .axis text {
+        font-family: sans-serif;
+        font-size: 11px;
+    }
+
+    #tooltip {
+        position: absolute;
+        text-align: center;
+        width: 60px;
+        height: auto;
+        padding: 10px;
+        color: white;
+        background-color:  #333300;
+        -webkit-border-radius: 10px;
+        -moz-border-radius: 10px;
+        border-radius: 10px;
+        -webkit-box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4);
+        -moz-box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4);
+        box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4);
+        pointer-events: none;
+    }
+
+    #tooltip.hidden {
+        display: none;
+    }
+
+    #tooltip p {
+        margin: 0;
+        font-family: sans-serif;
+        font-size: 12px;
+        line-height: 18px;
+    }
+
+	</style>
+
+</head>
+<body>	
+	<div id="chart2" align="Top" >
+					
+	</div>	
+		
+	<script type="text/javascript">	
+
+	var divW = document.getElementById("chart2");
+
+	var margin = {top: 50, right: 10, bottom: 20, left: 150};
+	//var padding = [ 50, 10, 20, 150 ];  //Top, right, bottom, left
+
+	var width = divW.clientWidth*0.65 - margin.left - margin.right,
+	    height = 600 - margin.top - margin.bottom;
+
+	var dtFormat = d3.time.format("%Y");
+
+	//x.domain(d3.extent(data, function(d) { return parseDate.parse(d.date); }));
+		
+    // define the x scale (horizontal)
+    var mindt = "1896",
+        maxdt = "2008";
+
+	var x = d3.time.scale()
+	    .range([0, width])
+	    .domain([dtFormat.parse(mindt), dtFormat.parse(maxdt)])  ;
+		//console.log(x.domain())
+
+	var y = d3.scale.linear()
+	    .range([height, 0]);
+
+	var color = d3.scale.ordinal()
+		.domain(["Men","Women"])
+		.range(["#E1B16A","#CE5A57"]);
+
+	var xAxis = d3.svg.axis()
+	    .scale(x)
+	    .orient("bottom")
+	    .ticks(30);
+	    //.tickFormat(function(d) {return dtFormat.parse(d);});
+
+
+	var yAxis = d3.svg.axis()
+	    .scale(y)
+	    .orient("left");
+
+	var stack = d3.layout.stack()
+	    .values(function(d) { return d.values; });
+
+	var area = d3.svg.area()
+		.interpolate("step-after")
+	    .x(function(d) { return x(dtFormat.parse(d.date)); })
+	    .y0(function(d) { return y(d.y0); })
+	    .y1(function(d) { return y(d.y0 + d.y); });
+
+
+	var svg = d3.select("#chart2")
+		.append("svg")
+	    .attr("width", width + margin.left + margin.right)
+	    .attr("height", height + margin.top + margin.bottom)
+	  	.append("g")
+	    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+	d3.csv("https://gist.githubusercontent.com/aniketbiswas2017/9db1734c3e1aa11246b34111e9c6f881/raw/9570528f0e030bb421be7786715e6623491bee66/Medal_Gender.csv", function(error, data) {
+	  if (error) throw error;
+
+	//color.domain(d3.keys(data[0]).filter(function(key) { return (key == "Women" || key == "Men"); }));
+	console.log(color.domain())
+	
+	data.forEach(function(d) {
+		d.date = d.Edition;
+	});
+	//console.log(data)
+
+	var host = data.map(function(d) {
+		return {date: d.date, city: d.City}
+	});
+	console.log(host)	
+
+	var data_a = stack(color.domain().map(function(g) {
+	return {
+	  gender: g,
+	  values: data.map(function(d) {
+	    return {date: d.date, y: +d[g]};
+	  })
+	};
+	}));
+	console.log(data_a)
+	//console.log(data_a[1])	
+	//console.log(data_a[1].values[25])
+
+	var totals = [];
+
+	for (i = 0; i < data.length; i++) {
+		totals[i] = 0;
+		for (j = 0; j < color.domain().length; j++) {
+			totals[i] += data_a[j].values[i].y;
+		}
+	}		
+	y.domain([0, d3.max(totals)]);
+	//console.log(y.domain())
+
+	var data_a = svg.selectAll("path")
+		.data(data_a)
+		.enter()
+		.append("path")		
+		.attr("class", "area")		
+		.attr("stroke", "none")
+		.attr("d", 0)
+		.style("fill-opacity", .2)
+		.attr("fill", function(d,i) {return color(d.gender);});
+
+	data_a.transition()
+		.delay(function(d, i) {return i * 50;})		
+		.duration(2500)		
+		.style("fill-opacity", 1)
+		.attr("d", function(d,i) {return area(d.values);});	
+	
+	data_a.append("title").text(function(d) {return d.gender;});
+
+	svg.append("g")
+		.attr("class", "x axis")
+		.attr("transform", "translate(0," + height + ")")
+		.call(xAxis);
+
+	svg.append("g")
+		.attr("class", "y axis")		
+		.call(yAxis);
+
+	svg.append("g")
+		.append("text")
+	    .attr("x", 25) // spacing
+		.attr("y", margin.top)		
+	    .style("text-anchor", "start")
+	    .style("font-size", "14px")
+	    .text("Medal Count By Gender");
+
+	});
+
+</script>
+	</section>
+
+</body>
+</html>

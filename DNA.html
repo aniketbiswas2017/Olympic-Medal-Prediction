@@ -1,0 +1,583 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+  <style>
+  
+      body {
+        padding: 10px;
+        min-width: 600px;
+        max-width: 1200px;
+        margin: auto;
+        height:100%;
+        font: 13px 'Roboto', sans-serif;
+      }
+      .header-section {
+        width: 100%;
+        margin-bottom: 0px;
+        margin: 0px;
+        padding: 0px;
+      }
+      .title-big {
+        font-size: 35px;
+        font-weight: 300;
+        text-align: center;
+        margin-bottom: 15px;
+      }
+      .title-sub{
+        text-align: center;
+        width: 100%;
+        line-height: 18px;
+        font-size: 12px;
+        color: #999;
+        margin-top: 2px;
+        top: -68px;
+      }
+      .directions-sub{
+        text-align: left;
+        width: 100%;
+        line-height: 18px;
+        font-size: 13px;
+        color: #000;
+        margin-top: 2px;
+        top: -68px;
+        margin-left:10px;
+        margin-bottom: 2px;
+      }
+      #chart {
+        height: 500px;
+        padding-top:10px;
+        padding-bottom:0px;
+        font: 13px 'Roboto', sans-serif;
+      }
+      .node rect {
+        fill-opacity: .8;
+        stroke-width: 0;
+      }
+   
+      .node text {
+        text-shadow: 0 1px 0 #ccc;
+        font: 15px 'Roboto', sans-serif;
+      }
+      .link {
+        fill: none;
+        stroke: #000;
+        stroke-opacity: .3;
+      }
+      .tooltip {
+        background-color: #f7f7f7;
+        padding: 3px 12px;
+        font: 12px 'Roboto', sans-serif;
+        border: 0px;
+        border-radius: 8px;
+        text-align: center;
+      }
+      .tooltip_body {
+        font: 12px 'Roboto', sans-serif;
+        margin: 5px 0;
+      } 
+      #legendContainer{
+        position:left;
+        top:160px;
+        height:100px;
+      }
+      #legend{
+        height:100px;
+        padding-left:15px;
+      }
+      .legend {
+          font-size: 12px;
+          font-weight: normal;
+          text-anchor: left;
+      }
+      .legendcheckbox{
+        cursor: pointer;
+
+      }
+      .resetbutton {
+        font-weight: 500;
+        background-color: #ccc;
+        color: black;
+        border-color: #ccc;
+        margin-right: 3px;
+        margin-left: 0px;
+        font-size: 10px;
+        font-weight: 500;
+        border-radius: 25px;
+        border: 1px solid #adadad;
+        padding: 3px 7px;
+        cursor: pointer;
+        box-shadow: none;
+        border: none;
+        background: #f1f1f1;
+        color: #4285F4;
+        font-weight: 300;
+        pointer-events: all;
+      }
+      .resetbutton:hover {
+        text-decoration: underline;
+        color: #124368;
+        background-color: #e8e8e8;
+       }
+
+      .allbutton {
+        font-weight: 500;
+        background-color: #ccc;
+        color: black;
+        border-color: #ccc;
+        margin-right: 3px;
+        margin-left: 0px;
+        font-size: 10px;
+        font-weight: 500;
+        border-radius: 25px;
+        border: 1px solid #adadad;
+        padding: 3px 7px;
+        cursor: pointer;
+        box-shadow: none;
+        border: none;
+        background: #f1f1f1;
+        color: #4285F4;
+        font-weight: 300;
+        pointer-events: all;
+      }
+      .allbutton:hover {
+        text-decoration: underline;
+        color: #124368;
+        background-color: #e8e8e8;
+      }
+      .first-col{
+        float:left;
+        padding-bottom: 5px;
+        padding-top: 10px;
+        padding-left:10px;
+      }
+      .second-col{
+        float:right;
+        padding-bottom:5px;
+        padding-top:10px;
+        padding-right:10px;
+      }
+      .col-title {
+        line-height: 18px;
+        font-size: 12px;
+      }
+
+  
+  </style>
+    <meta charset="utf-8">
+    <title>The World of Olympics</title>
+
+    <div class="header-section">
+        <p class="title-big">Countries and Events
+        </p>
+        <div class="settings">
+          <div class="filters-row">
+            <div class="title-sub">Explore how different countries performed in different Olympic events
+            </div>
+            <div class="directions-sub">Choose which countries to explore data on: <a class="allbutton">All Countries</a> <a class="resetbutton">Reset</a></div>
+          </div>
+
+    <script src="https://d3js.org/d3.v3.min.js"></script>
+    <script src="https://rawgit.com/newrelic-forks/d3-plugins-sankey/master/sankey.js"></script>
+    <script src="https://rawgit.com/misoproject/d3.chart/master/d3.chart.min.js"></script>
+    <script src="https://rawgit.com/q-m/d3.chart.sankey/master/d3.chart.sankey.min.js"></script>
+    <link rel="stylesheet" href="style.css" type="text/css" media="screen" />
+  </head>
+  <body>
+    <div id="legendContainer" class="legendContainer">
+    <svg id="legend"></svg></div>
+
+     <div class="first-col">
+          <div class="col-title"><b> Olympic Sport</b>
+          </div></div>
+      <div class="second-col">
+          <div class="col-title"><b> Country</b>
+          </div>
+        </div>
+
+    <div id="chart"></div>
+</body>
+
+    <script>
+      var margin = {top: 10, right: 10, bottom: 10, left: 10},
+          width = document.body.clientWidth - margin.left - margin.right,
+          height = document.body.clientHeight - margin.top - margin.bottom;
+
+      var colors = d3.scale.ordinal().range(
+        ["#DB4437", "#E91E63", "#9C27B0","#673AB7", "#3F51B5", "#4285F4", "#03A9F4", "#00BCD4", "#009688", "#0F9D58", 
+        "#8BC34A", "#CDDC39", "#FFEB3B","#F4B400", "#FF9800", "#FF5722", "#795548", "#9E9E9E", "#B93221", "#AD1457",
+         "#6A1B9A", "#4527A0", "#283593", "#2A56C6", "#0277BD", "#00838F", "#00695C", "#097138", "#558B2F", "#9E9D24",
+         "#F9A825", "#EE8100", "#EF6C00", "#4E342E"])
+
+      var tooltip = d3.select("body")
+        .append("div")
+        .attr("class", "tooltip")
+        .style("position", "absolute")
+        .style("opacity", 0);
+
+      d3.csv("https://gist.githubusercontent.com/aniketbiswas2017/0484168a2049902179aaa6e6a7e0f481/raw/1b5a0cecd5bcb77986354114baaf1b0e097c2501/GoogleOlympics.csv", function(error, data) {
+
+        // Reset selections
+        var CURR_SELECT = ["United States (US)", "Great Britain (GB)", "Russia (RU)", "Germany (DE)", "Japan (JP)", "France (FR)", "Brazil (BR)"];
+        
+        data2 = data.filter(function(d) {
+            if(CURR_SELECT.indexOf(d.target) == -1) return false;
+            else return true;
+         });
+
+        // Draw Sankey
+        graph = {"nodes" : [], "links" : []};
+
+        data2.forEach(function(d) {
+          graph.nodes.push({ "name" : d.source });
+          graph.nodes.push({ "name" : d.target });
+          graph.links.push({ "source" : d.source, 
+                             "target" : d.target, 
+                             "value" : +d.value });
+        });
+
+        graph.nodes = d3.keys(d3.nest()
+          .key(function(d) { return d.name; })
+          .map(graph.nodes));
+
+        graph.links.forEach(function(d, i) {
+          graph.links[i].source = graph.nodes.indexOf(graph.links[i].source);
+          graph.links[i].target = graph.nodes.indexOf(graph.links[i].target);
+        });
+        
+        graph.nodes.forEach(function (d, i) {
+          graph.nodes[i] = { "name": d };
+        });  
+
+        var chart = d3.select("#chart").append("svg")
+          .attr("width", width + margin.left + margin.right)
+          .attr("height", height + margin.top + margin.bottom)
+          .call(responsivefy)
+          .append("g")
+          .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+          .chart("Sankey.Path");
+
+        chart
+          .name(label)
+          .colorNodes(function(name, node, link) {
+            return color(node, 1);
+          })
+          .colorLinks(function(link) {
+            return color(link.source); 
+          })
+          .nodeWidth(10)   
+          .nodePadding(15)  
+          .spread(true)   
+          .iterations(0)   
+          .draw(graph);
+
+        // Summary annotations 
+        chart.on('node:mouseover', function(node) {
+          if (d3.event.pageY > (height - 150)) {
+            var yvar = -80;
+          } else {
+            var yvar = 0;
+          }; 
+
+          function compare(a, b) {
+            if (a.value < b.value) 
+              return 1; 
+            if (a.value > b.value) 
+              return -1;
+            return 0;
+          }; 
+
+          // Annotations when hovering over sport 
+          if (d3.event.pageX < width / 2) {
+            tooltip.html("");
+            tooltip.append("p").attr("class", "tooltip_body")
+             .text("Countries that have won medals most for " + node.name);
+            tooltip.append("p").attr("class", "tooltip_body")
+              .text("are the ones listed: " + node.sourceLinks.sort(compare)[0].target.name);
+            tooltip.append("p")
+            tooltip.append("p").attr("class", "tooltip_body")
+             .text("Country that have won medals least for " + node.name);
+            tooltip.append("p").attr("class", "tooltip_body")
+              .text("are the ones listed: " + node.sourceLinks.sort(compare)[node.sourceLinks.length-1].target.name);
+          } 
+
+          // Annotations when hovering over country
+          if (d3.event.pageX > width / 2) {
+            tooltip.html("");
+            tooltip.append("p").attr("class", "tooltip_body")
+             .text(node.name + " has won medals");
+            tooltip.append("p").attr("class", "tooltip_body")
+             .text("most for: " + node.targetLinks.sort(compare)[0].source.name);
+            tooltip.append("p");
+            tooltip.append("p").attr("class", "tooltip_body")
+             .text(node.name + " has won medals");
+            tooltip.append("p").attr("class", "tooltip_body")
+             .text("least for: " + node.targetLinks.sort(compare)[node.targetLinks.length-1].source.name);
+          }
+
+         tooltip.transition()
+          .duration(10)
+          .style("opacity", .9);
+
+         return tooltip.style("left", document.body.clientWidth * 3 /7  + "px").style("top", d3.event.pageY + yvar + "px");
+
+       }); 
+  
+        chart.on('node:mouseout', function(node) {
+          tooltip.transition()
+            .duration(10)
+            .style("opacity", 0);
+       });
+
+        // Create legend
+        dataNest = d3.nest()
+          .key(function(d) { return d.target; })
+          .key(function(d) { return d.legend; })
+          .entries(data);
+
+        var legend = d3.select("#legend")
+          .attr("width", width + margin.left + margin.right)
+          .call(responsivefy)
+          .append("g")
+          .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+          .selectAll("text")
+          .data(dataNest, function(d) { return d.key; });
+        
+        legend.enter().append("text")
+          .attr("x", function(d, i) { return (13 + (i%10) * width/10);})
+          .attr("y", function(d,i) { return Math.floor(i / 10) * 30 + 10})
+          .attr("class", "legend")
+          .text(function(d) { return d.values[0].key; });
+
+        legend.enter().append("rect")
+          .attr("width", 10)
+          .attr("height", 10)
+          .attr("x", function(d, i) { return 0 + (i%10)*width/10;})
+          .attr("y", function(d,i) { return Math.floor(i / 10) * 30 })
+          .attr("fill", function(d) {
+            if(CURR_SELECT.indexOf(d.key) == -1)
+              return "#f1f1f1";
+            else
+             return "#4285F4";      
+          })
+          .attr("class", function(d, i){ return "legendcheckbox " + d.key; })
+            .on("click", function(d) {
+              d3.select(this).attr("fill", function(d) {
+                if(d3.select(this).attr("fill") == "#f1f1f1") {
+                  CURR_SELECT.push(d.key);
+                  return "#4285F4";
+                } else {
+                  removeFromArray(CURR_SELECT, d.key);
+                  return "#f1f1f1";
+                }
+              })
+
+              // Redrawing Sankey 
+              data2 = data.filter(function(d) {
+                if(CURR_SELECT.indexOf(d.target) == -1) return false;
+                else return true;
+              });
+
+              graph = {"nodes" : [], "links" : []};
+
+              data2.forEach(function(d) {
+                graph.nodes.push({ "name" : d.source });
+                graph.nodes.push({ "name" : d.target });
+                graph.links.push({ "source" : d.source, 
+                                   "target" : d.target,                                
+                                   "value" : +d.value });
+              });
+
+              graph.nodes = d3.keys(d3.nest()
+                .key(function(d) { return d.name; })
+                .map(graph.nodes));
+
+              graph.links.forEach(function(d, i) {
+                graph.links[i].source = graph.nodes.indexOf(graph.links[i].source);
+                graph.links[i].target = graph.nodes.indexOf(graph.links[i].target);
+              });
+
+              graph.nodes.forEach(function (d, i) {
+                graph.nodes[i] = { "name": d };
+              });  
+
+              chart
+                .name(label) // node names 
+                .colorNodes(function(name, node, link) {
+                  return color(node, 1);
+                })
+                .colorLinks(function(link) {
+                  return color(link.source); 
+                })
+                .nodeWidth(10)  
+                .nodePadding(15) 
+                .spread(true)   
+                .iterations(0)   
+                .draw(graph);
+            })
+
+          d3.select(".resetbutton").on("click", function() {
+            CURR_SELECT = ["United States (US)", "Great Britain (GB)", "Russia (RU)", "Germany (DE)", "Japan (JP)", "France (FR)", "South Korea (KR)"];
+
+            legend
+              .attr("fill", function(d) {
+                if(CURR_SELECT.indexOf(d.key) == -1)
+                  return "#f1f1f1";
+                else
+                 return "#4285F4";      
+              })
+
+            data2 = data.filter(function(d) {
+                //return d.target == selected;
+                if(CURR_SELECT.indexOf(d.target) == -1)
+                  return false;
+                else
+                  return true;
+              });
+
+              graph = {"nodes" : [], "links" : []};
+
+              data2.forEach(function(d) {
+                graph.nodes.push({ "name" : d.source });
+                graph.nodes.push({ "name" : d.target });
+                graph.links.push({ "source" : d.source, 
+                                   "target" : d.target,                                
+                                   "value" : +d.value });
+              });
+
+              graph.nodes = d3.keys(d3.nest()
+                .key(function(d) { return d.name; })
+                .map(graph.nodes));
+
+              graph.links.forEach(function(d, i) {
+                graph.links[i].source = graph.nodes.indexOf(graph.links[i].source);
+                graph.links[i].target = graph.nodes.indexOf(graph.links[i].target);
+              });
+
+              graph.nodes.forEach(function (d, i) {
+                graph.nodes[i] = { "name": d };
+              });  
+
+              chart
+                .name(label) // node names 
+                .colorNodes(function(name, node, link) {
+                  return color(node, 1);
+                })
+                .colorLinks(function(link) {
+                  return color(link.source); 
+                })
+                .nodeWidth(10)  
+                .nodePadding(15) 
+                .spread(true)   
+                .iterations(0)   
+                .draw(graph);
+
+        
+        });
+
+          d3.select(".allbutton").on("click", function() {
+            CURR_SELECT = ["Argentina (AR)", "Australia (AU)", "Brazil (BR)", "Canada (CA)", "Switzerland (CH)",
+              "Colombia (CO)", "Germany (DE)", "Spain (ES)", "France (FR)", "Great Britain (GB)", "Hungary (HU)", 
+              "Iran (IR)", "Italy (IT)", "Japan (JP)", "South Korea (KR)", "Netherlands (NL)", "Denmark (DK)", "New Zealand (NZ)", 
+              "Poland (PL)", "Russia (RU)", "Sweden (SE)", "Ukraine (UA)", "United States (US)", "South Africa (ZA)", 
+              "Cuba (CU)", "Greece (GR)", "Croatia (HR)", "Jamaica (JM)", "Kazakhstan (KZ)", "Kenya (KE)", "Uzbekistan (UZ)"];
+
+            legend
+              .attr("fill", function(d) {
+                if(CURR_SELECT.indexOf(d.key) == -1) return "#f1f1f1";
+                else return "#4285F4";      
+              })
+
+            data2 = data.filter(function(d) {
+                if(CURR_SELECT.indexOf(d.target) == -1) return false;
+                else  return true;
+              });
+
+              graph = {"nodes" : [], "links" : []};
+
+              data2.forEach(function(d) {
+                graph.nodes.push({ "name" : d.source });
+                graph.nodes.push({ "name" : d.target });
+                graph.links.push({ "source" : d.source, 
+                                   "target" : d.target,                                
+                                   "value" : +d.value });
+              });
+
+              graph.nodes = d3.keys(d3.nest()
+                .key(function(d) { return d.name; })
+                .map(graph.nodes));
+
+              graph.links.forEach(function(d, i) {
+                graph.links[i].source = graph.nodes.indexOf(graph.links[i].source);
+                graph.links[i].target = graph.nodes.indexOf(graph.links[i].target);
+              });
+
+              graph.nodes.forEach(function (d, i) {
+                graph.nodes[i] = { "name": d };
+              });  
+
+              chart
+                .name(label) // node names 
+                .colorNodes(function(name, node, link) {
+                  return color(node, 1);
+                })
+                .colorLinks(function(link) {
+                  return color(link.source); 
+                })
+                .nodeWidth(10)  
+                .nodePadding(15) 
+                .spread(true)   
+                .iterations(0)   
+                .draw(graph);
+
+        
+        });
+
+  
+        function label(nodes) {
+          return nodes.name; 
+        }
+
+        function color(nodes, depth) {
+          var id = nodes.name;
+
+          if (nodes.targetLinks.length > 0) {
+            return "#90A4AE"; //9f9fa3";
+          } else {
+            return colors(id);
+          }
+        }
+        function removeFromArray(arr) {
+          var what, a = arguments, L = a.length, ax;
+          while (L > 1 && arr.length) {
+            what = a[--L];
+            while ((ax= arr.indexOf(what)) !== -1) {
+              arr.splice(ax, 1);
+            }
+          } 
+          return arr;
+        }
+
+        function responsivefy(svg) {
+          var container = d3.select(svg.node().parentNode),
+              width = parseInt(svg.style("width")),
+              height = parseInt(svg.style("height")),
+              aspect = width / height;
+
+          svg.attr("viewBox", "0 0 " + width + " " + height)
+              .attr("perserveAspectRatio", "xMinYMid")
+              .call(resize);
+
+          //d3.select(window).on("resize." + container.attr("#graphic"), resize);
+          d3.select(window).on("resize." + container.attr("id"), resize);
+
+          function resize() {
+              var targetWidth = parseInt(container.style("width"));
+              svg.attr("width", targetWidth);
+              svg.attr("height", Math.round(targetWidth /aspect));
+          }  
+        }
+      }); 
+    </script>
+  </body>
+</html>

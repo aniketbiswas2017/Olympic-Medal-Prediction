@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title></title>
+	<style type="text/css">
+		html, body { margin: 0, padding: 0, overflow: hidden}
+	</style>
+</head>
+<body>
+
+<script src="https://code.jquery.com/jquery-3.1.1.min.js" integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8=" crossorigin="anonymous"></script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r83/three.min.js"></script>
+<script type="text/javascript" src="script.js"></script>
+<script type="text/javascript">
+	var scene = new THREE.Scene();
+		var camera = new THREE.PerspectiveCamera( 30, window.innerWidth / window.innerHeight, 0.1, 1000 );
+		var renderer = new THREE.WebGLRenderer();
+			renderer.setSize( window.innerWidth, window.innerHeight );
+				$('body').append( renderer.domElement );
+		THREE.ImageUtils.crossOrigin = 'anonymous';
+		var mapOverlay = THREE.ImageUtils.loadTexture('http://i.imgur.com/09sqWAC.jpg');
+		var material1 = new THREE.MeshBasicMaterial( { map: mapOverlay, needsUpdate: true } );
+		//Create blue ring
+		var geometry = new THREE.RingGeometry( 2, 2.4, 64 );
+		var materialBlue = new THREE.MeshBasicMaterial( { color: 0x0099ff, side: THREE.DoubleSide } );
+		var blue = new THREE.Mesh( geometry, materialBlue );
+		//Create yellow ring
+		var materialYellow = new THREE.MeshBasicMaterial( { color: 0xFFFF00, side: THREE.DoubleSide } );
+		var yellow = new THREE.Mesh( geometry, materialYellow );
+		//Create gray ring
+		var materialGray = new THREE.MeshBasicMaterial( { color: 0x999999, side: THREE.DoubleSide } );
+		var gray = new THREE.Mesh( geometry, materialGray );
+		//Create green ring
+		var materialGreen = new THREE.MeshBasicMaterial( { color: 0x009933, side: THREE.DoubleSide } );
+		var green = new THREE.Mesh( geometry, materialGreen );
+		//Create red ring
+		var materialRed = new THREE.MeshBasicMaterial( { color: 0xFF3300, side: THREE.DoubleSide } );
+		var red = new THREE.Mesh( geometry, materialRed );
+		
+		//scene.add will add the ring and .position.x/y positions the ring on the page	
+		scene.add(blue);
+		scene.add(yellow);
+		scene.add(gray);
+		scene.add(green);
+		scene.add(red);
+		
+		//positioning the rings on the x and y axis
+		yellow.position.x = 3;
+		yellow.position.y = -1.75;
+		gray.position.x = 6;
+		green.position.x = 9;
+		green.position.y = -1.75;
+		red.position.x = 12;
+		//where the camera is relative to the ring
+		camera.position.z = 35;
+		camera.position.y = -2;
+		camera.position.x = 6;
+		//function to make the rings rotate
+		function render() {
+			requestAnimationFrame(render);
+			renderer.render(scene, camera);
+			blue.rotation.y += 0.02;
+			yellow.rotation.y += 0.02;
+			gray.rotation.y += 0.02;
+			green.rotation.y += 0.02;
+			red.rotation.y += 0.02;
+		}
+		render();
+</script>
+</body>
+</html>
