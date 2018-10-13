@@ -1,11 +1,6 @@
-XXX-X-XXXX-XXXX-X/XX/$XX.00 ©20XX IEEE
+
 VISUALIZING OLYMPICS
-Uday Sharma Masters of applied computer science Dalhousie university Halifax, Canada
-B00781179 ud836628@dal.ca
-Aniket Biswas Masters of applied computer science Dalhousie university Halifax, Canada
-B00781091 an584252@dal.ca
-Kunal Sharma Masters of applied computer science Dalhousie university Halifax, Canada
-B00780464 kn781914@dal.ca
+
 Abstract— This report explores the hypothesis that the number of medals won by a country in the Olympic games is dependent on the population, GDP per capita, human development index (HDI), number of internet users and number of athletes representing the country. The graphs also represent the performance the countries in the Olympics history based on the gender ratio of the respective teams and the effects of being the host nation. This project report provides an application overview of the visualization
 components and the conclusions derived from the respective visualizations.
 I. INTRODUCTION
